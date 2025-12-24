@@ -171,10 +171,10 @@ def cz_message(infos):
 {chr(10).join(lines)}
 ```"""
 def cow_warning(info):
-    return f"🐮 **Cow Level in 10 minutes** — starts {discord_time(info.ts_ms)}"
+    return f"🐮 **Cow Level in 10 minutes**"
 
 def active_alert(info):
-    return f"🟥 **ACTIVE NOW:** `{info.zone}` — {discord_time(info.ts_ms)}"
+    return f"🟥 **ACTIVE NOW:** `{info.zone}`"
 
 intents = discord.Intents.default()
 intents.message_content = True
