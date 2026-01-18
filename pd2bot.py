@@ -96,7 +96,8 @@ def is_target_zone(z):
     return z in {
         "Chaos Sanctuary",
         "Cow Level",
-        "Stony Field and Tristram"
+        "Stony Field and Tristram",
+        "Abaddon, the Pit of Acheron, and the Infernal Pit"
     }
 
 def discord_time(ts):
