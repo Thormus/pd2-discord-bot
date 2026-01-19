@@ -110,7 +110,6 @@ def minutes_left_in_window(active_ts_ms: int, now_ms: int) -> int:
 
 def cz_message(infos):
     # Fixed-width alignment using a monospace code block.
-
     now_ms = int(time.time() * 1000)
     zone_width = 40  # fixed width for cleaner columns
 
@@ -146,36 +145,13 @@ def cz_message(infos):
 {chr(10).join(lines)}
 ```"""
 
-    now_ms = int(time.time() * 1000)
-    zone_width = 40  # fixed width for cleaner columns
-
-    def mins_until(ts_ms: int) -> int:
-        return max(0, int((ts_ms - now_ms) // 60000))
-
-    lines = ["Corrupted Zone Bot"]
-
-    for i, z in enumerate(infos):
-        if i == 0:
-            left = minutes_left_in_window(z.ts_ms, now_ms)
-            label = "Active"
-            icon = "🟥"
-            timing = f"(Time Left {left}m)"
-        else:
-            label = "Next" if i == 1 else f"Next +{i-1}"
-            icon = "➡️" if i == 1 else "⏭️"
-            timing = f"(In {mins_until(z.ts_ms)}m)"
-
-        left_col = f"{icon} {label}"
-        lines.append(f"{left_col:<10} : {z.zone:<{zone_width}}  {timing}")
-
-    return f"""```
-{chr(10).join(lines)}
-```"""
 def cow_warning(info):
-    return f"🐮 **Cow Level in 10 minutes**"
+    return "🐮 **Cow Level in 10 minutes**"
 
 def abaddon_warning(info):
+    # Pick one:
     return "🔥 **Abaddon (Pit of Acheron / Infernal Pit) in 10 minutes**"
+    # return "🔴🌀 **Abaddon (Pit of Acheron / Infernal Pit) in 10 minutes**"
 
 def active_alert(info):
     return f"🟥 **ACTIVE NOW:** `{info.zone}`"
@@ -199,7 +175,7 @@ async def cz(ctx):
 
 @tasks.loop(seconds=30)
 async def zone_watcher():
-    global last_seed, last_cow_seed last_abaddon_seed
+    global last_seed, last_cow_seed, last_abaddon_seed
 
     channel = bot.get_channel(NOTIFY_CHANNEL_ID)
     if not channel:
