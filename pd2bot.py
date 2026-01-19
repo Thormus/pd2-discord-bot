@@ -174,6 +174,9 @@ def cz_message(infos):
 def cow_warning(info):
     return f"🐮 **Cow Level in 10 minutes**"
 
+def abaddon_warning(info):
+    return "🔥 **Abaddon (Pit of Acheron / Infernal Pit) in 10 minutes**"
+
 def active_alert(info):
     return f"🟥 **ACTIVE NOW:** `{info.zone}`"
 
@@ -183,6 +186,7 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 last_seed = None
 last_cow_seed = None
+last_abaddon_seed = None
 
 @bot.event
 async def on_ready():
@@ -195,7 +199,7 @@ async def cz(ctx):
 
 @tasks.loop(seconds=30)
 async def zone_watcher():
-    global last_seed, last_cow_seed
+    global last_seed, last_cow_seed last_abaddon_seed
 
     channel = bot.get_channel(NOTIFY_CHANNEL_ID)
     if not channel:
@@ -216,6 +220,16 @@ async def zone_watcher():
             if warn_at <= now < warn_at + 30_000 and z.seed != last_cow_seed:
                 last_cow_seed = z.seed
                 await channel.send(cow_warning(z))
+            break
+
+    # Abaddon warning (10 min before)
+    for i in range(300):
+        z = get_zone(now, i)
+        if z.zone == "Abaddon, the Pit of Acheron, and the Infernal Pit":
+            warn_at = z.ts_ms - 600_000
+            if warn_at <= now < warn_at + 30_000 and z.seed != last_abaddon_seed:
+                last_abaddon_seed = z.seed
+                await channel.send(abaddon_warning(z))
             break
 
 @zone_watcher.before_loop
