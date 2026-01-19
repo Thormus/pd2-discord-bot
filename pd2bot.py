@@ -150,8 +150,7 @@ def cow_warning(info):
 
 def abaddon_warning(info):
     # Pick one:
-    return "🔥 **Abaddon (Pit of Acheron / Infernal Pit) in 10 minutes**"
-    # return "🔴🌀 **Abaddon (Pit of Acheron / Infernal Pit) in 10 minutes**"
+    return "🔥 **Abaddon, the Pit of Acheron, and the Infernal Pit in 10 minutes**"
 
 def active_alert(info):
     return f"🟥 **ACTIVE NOW:** `{info.zone}`"
