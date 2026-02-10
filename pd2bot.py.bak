@@ -72,19 +72,14 @@ def minutes_left_in_window(active_ts_ms, now_ms):
 def cz_message(infos):
     now_ms = int(time.time() * 1000)
     active_left = minutes_left_in_window(infos[0].ts_ms, now_ms)
-    active_zone = infos[0].zone
-    next_zones = infos[1:min(5, len(infos))]
-    next_info = []
-    for info in next_zones:
-        mins = int((info.ts_ms - now_ms) // 60000)
-        next_info.append(f"{info.zone} (In {mins}m)")
-    description = f"**Active:** {active_zone} (Time Left {active_left}m)\n\n**Next:**\n" + "\n".join(next_info)
-    embed = discord.Embed(
-        title="Corrupted Zone Bot",
-        color=0xFF0000
-    )
-    embed.description = description
-    return embed
+    lines = ["Corrupted Zone Bot"]
+    for i in range(min(5, len(infos))):
+        if i == 0:
+            lines.append(f"🟥 Active : {infos[0].zone:<40}  (Time Left {active_left}m)")
+        else:
+            mins = int((infos[i].ts_ms - now_ms) // 60000) if i == 1 else int((infos[i].ts_ms - now_ms) // 60000)
+            lines.append(f"➡️ Next   : {infos[i].zone:<40}  (In {mins}m)")
+    return "```\\n" + "\\n".join(lines) + "```"
 
 def cow_warning(info):
     return "🐮 **Cow Level in 10 minutes**"
@@ -110,7 +105,7 @@ async def on_ready():
 
 @bot.command()
 async def cz(ctx):
-    await ctx.send(embed=cz_message(current_and_next()))
+    await ctx.send(cz_message(current_and_next()))
 
 @bot.command()
 async def toggle(ctx):
@@ -131,7 +126,7 @@ async def zone_watcher():
     cur = get_zone(now)
     if is_target_zone(cur.zone) and cur.seed != last_seed:
         last_seed = cur.seed
-        await channel.send(embed=discord.Embed(title="🟥 ACTIVE NOW", color=0xFF0000, description=f"`{cur.zone}`"))
+        await channel.send(active_alert(cur))
     # Cow warning
     for i in range(300):
         z = get_zone(now, i)
@@ -139,7 +134,7 @@ async def zone_watcher():
             warn_at = z.ts_ms - 600000
             if warn_at <= now < warn_at + 30000 and z.seed != last_cow_seed:
                 last_cow_seed = z.seed
-                await channel.send(embed=discord.Embed(title="🐮 Cow Level Warning", color=0xFFFF00, description="**Cow Level in 10 minutes**"))
+                await channel.send(cow_warning(z))
             break
     # Abaddon warning
     for i in range(300):
@@ -148,7 +143,7 @@ async def zone_watcher():
             warn_at = z.ts_ms - 600000
             if warn_at <= now < warn_at + 30000 and z.seed != last_abaddon_seed:
                 last_abaddon_seed = z.seed
-                await channel.send(embed=discord.Embed(title="🔥 Abaddon Warning", color=0xFF0000, description="**Abaddon, the Pit of Acheron, and the Infernal Pit in 10 minutes**"))
+                await channel.send(abaddon_warning(z))
             break
 
 @zone_watcher.before_loop
