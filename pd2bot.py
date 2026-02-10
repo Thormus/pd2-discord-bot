@@ -2,6 +2,7 @@
 
 import os
 import time
+import traceback
 import discord
 from dataclasses import dataclass
 from discord.ext import commands, tasks
@@ -139,17 +140,34 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
+    # ignore unknown commands
     if isinstance(error, commands.CommandNotFound):
         return
-    print(f"Command error: {ctx.message.content} -> {repr(error)}")
-    await ctx.send(f"⚠️ Error: `{type(error).__name__}`")
+
+    # unwrap real exception
+    original = getattr(error, "original", error)
+
+    print("\n=== COMMAND ERROR ===")
+    print("Message:", getattr(ctx.message, "content", None))
+    print("Guild  :", getattr(getattr(ctx, "guild", None), "id", None), getattr(getattr(ctx, "guild", None), "name", None))
+    print("Channel:", getattr(ctx.channel, "id", None), getattr(ctx.channel, "name", None))
+    print("Author :", getattr(ctx.author, "id", None), getattr(ctx.author, "name", None))
+    print("Error  :", repr(original))
+    traceback.print_exception(type(original), original, original.__traceback__)
+    print("=====================\n")
+
+    # don't crash if bot can't reply
+    try:
+        await ctx.send(f"⚠️ `{type(original).__name__}`: {original}")
+    except discord.Forbidden:
+        pass
 
 @bot.command(name="cz")
-async def cz(ctx):
+async def cz(ctx: commands.Context):
     await ctx.send(embed=cz_message(current_and_next()))
 
 @bot.command()
-async def toggle(ctx):
+async def toggle(ctx: commands.Context):
     global notifications_enabled
     notifications_enabled = not notifications_enabled
     status = "🔔 **Notifications ENABLED**" if notifications_enabled else "🔕 **Notifications DISABLED**"
@@ -168,7 +186,7 @@ async def zone_watcher():
 
     channel = bot.get_channel(NOTIFY_CHANNEL_ID)
     if channel is None:
-        print(f"Cannot see channel id={NOTIFY_CHANNEL_ID}")
+        print(f"Cannot see channel id={NOTIFY_CHANNEL_ID} (check permissions / correct ID)")
         return
 
     now = int(time.time() * 1000)
