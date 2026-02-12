@@ -31,21 +31,37 @@ notifications_enabled = True
 # ======================
 
 ZONES = [
-    "Blood Moor and Den of Evil", "Cold Plains and the Cave", "Stony Field and Tristram",
-    "Dark Wood and the Underground Passage", "Black Marsh and the Hole", "Tamoe Highland and the Pit",
-    "Burial Ground and Mausoleum", "Forgotten Tower", "Outer Cloister and Barracks",
-    "Jail, Inner Cloister, and Cathedral", "Catacombs", "Cow Level",
-    "Rocky Waste and the Stony Tomb", "Dry Hills and the Halls of the Dead",
-    "Far Oasis and the Maggot Lair", "Lost City, Ancient Tunnels and Claw Viper Temple",
-    "Canyon of the Magi and Tal Rasha's Tomb", "Lut Gholein Sewers and the Palace Cellars",
-    "Arcane Sanctuary", "Spider Forest, Arachnid Lair and Spider Cavern",
-    "Great Marsh and the Swampy Pit", "Flayer Jungle and the Flayer Dungeon",
-    "Lower Kurast and the Kurast Sewers", "Kurast Bazaar, Ruined Temple and Disused Fane",
+    "Blood Moor and Den of Evil",
+    "Cold Plains and the Cave",
+    "Stony Field and Tristram",
+    "Dark Wood and the Underground Passage",
+    "Black Marsh and the Hole",
+    "Tamoe Highland and the Pit",
+    "Burial Ground and Mausoleum",
+    "Forgotten Tower",
+    "Outer Cloister and Barracks",
+    "Jail, Inner Cloister, and Cathedral",
+    "Catacombs",
+    "Cow Level",
+    "Rocky Waste and the Stony Tomb",
+    "Dry Hills and the Halls of the Dead",
+    "Far Oasis and the Maggot Lair",
+    "Lost City, Ancient Tunnels and Claw Viper Temple",
+    "Canyon of the Magi and Tal Rasha's Tomb",
+    "Lut Gholein Sewers and the Palace Cellars",
+    "Arcane Sanctuary",
+    "Spider Forest, Arachnid Lair and Spider Cavern",
+    "Great Marsh and the Swampy Pit",
+    "Flayer Jungle and the Flayer Dungeon",
+    "Lower Kurast and the Kurast Sewers",
+    "Kurast Bazaar, Ruined Temple and Disused Fane",
     "Upper Kurast, the Forgotten Reliquary and Forgotten Temple",
     "Travincal, the Ruined Fane and Disused Reliquary",
-    "Durance of Hate", "Outer Steppes and the Plains of Despair",
+    "Durance of Hate",
+    "Outer Steppes and the Plains of Despair",
     "City of the Damned and the River of Flame",
-    "Chaos Sanctuary", "Bloody Foothills and the Frigid Highlands",
+    "Chaos Sanctuary",
+    "Bloody Foothills and the Frigid Highlands",
     "Arreat Plateau, Crystalline Passage and Frozen River",
     "Glacial Trail, Drifter Cavern and Frozen Tundra",
     "Ancients' Way and the Icy Cellar",
@@ -97,17 +113,35 @@ def is_target_zone(zone):
 def minutes_left_in_window(active_ts_ms, now_ms):
     return max(0, int((active_ts_ms + INTERVAL_MS - now_ms) // 60000))
 
+def minutes_until(future_ts_ms, now_ms):
+    return max(0, int((future_ts_ms - now_ms) // 60000))
+
+ZONE_EMOJI = {
+    "Chaos Sanctuary": "⚔️",
+    "Cow Level": "🐮",
+    "Stony Field and Tristram": "🪨",
+    "Abaddon, the Pit of Acheron and the Infernal Pit": "🔥",
+}
+
 def cz_message(infos):
     now_ms = int(time.time() * 1000)
+    lines = []
 
+    # Current active zone
     active = infos[0]
-    active_left = minutes_left_in_window(active.ts_ms, now_ms)
+    left = minutes_left_in_window(active.ts_ms, now_ms)
+    emoji = ZONE_EMOJI.get(active.zone, "🗺️")
+    lines.append(f"🟢 NOW  {emoji}  {active.zone} — {left}m left")
 
-    # Simple single message with emojis
-    active_emoji = {"Chaos Sanctuary": "⚔️", "Cow Level": "🐮", "Stony Field and Tristram": "🪨", "Abaddon, the Pit of Acheron and the Infernal Pit": "🔥"}.get(active.zone, "🗺️")
+    # Next 4 upcoming zones
+    labels = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"]
+    for i, label in enumerate(labels, start=1):
+        z = infos[i]
+        mins = minutes_until(z.ts_ms, now_ms)
+        emoji = ZONE_EMOJI.get(z.zone, "🗺️")
+        lines.append(f"{label}  {emoji}  {z.zone} — in {mins}m")
 
-    output = f"**{active_emoji} {active.zone}**\n {active_left}m left"
-    return output
+    return "\n".join(lines)
 
 # ======================
 # DISCORD BOT
@@ -196,7 +230,7 @@ async def zone_watcher():
             warn_at = z.ts_ms - 600_000
             if warn_at <= now < warn_at + 30_000 and z.seed != last_cow_seed:
                 last_cow_seed = z.seed
-                await channel.send("`**🐮 Cow Level Warning:** Cow Level in 10 minutes`")
+                await channel.send("🐮 Cow Level in 10m")
             break
 
     # Abaddon warning
@@ -206,7 +240,7 @@ async def zone_watcher():
             warn_at = z.ts_ms - 600_000
             if warn_at <= now < warn_at + 30_000 and z.seed != last_abaddon_seed:
                 last_abaddon_seed = z.seed
-                await channel.send("`**🔥 Abaddon Warning:** Abaddon, the Pit of Acheron and the Infernal Pit in 10 minutes`")
+                await channel.send("🔥 Abaddon, the Pit of Acheron and the Infernal Pit in 10m")
             break
 
 @zone_watcher.before_loop
