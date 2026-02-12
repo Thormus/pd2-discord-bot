@@ -36,21 +36,21 @@ ZONES = [
     "Burial Ground and Mausoleum", "Forgotten Tower", "Outer Cloister and Barracks",
     "Jail, Inner Cloister, and Cathedral", "Catacombs", "Cow Level",
     "Rocky Waste and the Stony Tomb", "Dry Hills and the Halls of the Dead",
-    "Far Oasis and the Maggot Lair", "Lost City, Ancient Tunnels, and Claw Viper Temple",
+    "Far Oasis and the Maggot Lair", "Lost City, Ancient Tunnels and Claw Viper Temple",
     "Canyon of the Magi and Tal Rasha's Tomb", "Lut Gholein Sewers and the Palace Cellars",
-    "Arcane Sanctuary", "Spider Forest, Arachnid Lair, and Spider Cavern",
+    "Arcane Sanctuary", "Spider Forest, Arachnid Lair and Spider Cavern",
     "Great Marsh and the Swampy Pit", "Flayer Jungle and the Flayer Dungeon",
-    "Lower Kurast and the Kurast Sewers", "Kurast Bazaar, Ruined Temple, and Disused Fane",
-    "Upper Kurast, the Forgotten Reliquary, and Forgotten Temple",
-    "Travincal, the Ruined Fane, and Disused Reliquary",
+    "Lower Kurast and the Kurast Sewers", "Kurast Bazaar, Ruined Temple and Disused Fane",
+    "Upper Kurast, the Forgotten Reliquary and Forgotten Temple",
+    "Travincal, the Ruined Fane and Disused Reliquary",
     "Durance of Hate", "Outer Steppes and the Plains of Despair",
     "City of the Damned and the River of Flame",
     "Chaos Sanctuary", "Bloody Foothills and the Frigid Highlands",
-    "Arreat Plateau, Crystalline Passage, and Frozen River",
-    "Glacial Trail, Drifter Cavern, and Frozen Tundra",
+    "Arreat Plateau, Crystalline Passage and Frozen River",
+    "Glacial Trail, Drifter Cavern and Frozen Tundra",
     "Ancients' Way and the Icy Cellar",
     "Nihlathak's Temple",
-    "Abaddon, the Pit of Acheron, and the Infernal Pit",
+    "Abaddon, the Pit of Acheron and the Infernal Pit",
     "Worldstone Keep and Throne of Destruction",
 ]
 
@@ -77,7 +77,7 @@ def get_zone(ts_ms=None, n=0):
     ts = base + INTERVAL_MS * n
 
     a = ts // INTERVAL_MS
-    b = ts // 86_400_000
+    b = ts // 86_400000
     seed = a + b
 
     idx = get_next_prng(seed, 214013, 2531011) % len(ZONES)
@@ -91,7 +91,7 @@ def is_target_zone(zone):
         "Chaos Sanctuary",
         "Cow Level",
         "Stony Field and Tristram",
-        "Abaddon, the Pit of Acheron, and the Infernal Pit",
+        "Abaddon, the Pit of Acheron and the Infernal Pit",
     }
 
 def minutes_left_in_window(active_ts_ms, now_ms):
@@ -103,20 +103,11 @@ def cz_message(infos):
     active = infos[0]
     active_left = minutes_left_in_window(active.ts_ms, now_ms)
 
-    next_lines = []
-    for info in infos[1:]:
-        mins = int((info.ts_ms - now_ms) // 60000)
-        next_lines.append(f"{info.zone} (In {mins}m)")
+    # Simple single message with emojis
+    active_emoji = {"Chaos Sanctuary": "⚔️", "Cow Level": "🐮", "Stony Field and Tristram": "🪨", "Abaddon, the Pit of Acheron and the Infernal Pit": "🔥"}.get(active.zone, "🗺️")
 
-    embed = discord.Embed(
-        title="Corrupted Zone Bot",
-        color=0xFF0000,
-        description=(
-            f"**Active:** {active.zone} (Time Left {active_left}m)\n\n"
-            "**Next:**\n" + "\n".join(next_lines)
-        ),
-    )
-    return embed
+    output = f"**{active_emoji} {active.zone}**\n {active_left}m left"
+    return output
 
 # ======================
 # DISCORD BOT
@@ -164,7 +155,7 @@ async def on_command_error(ctx, error):
 
 @bot.command(name="cz")
 async def cz(ctx: commands.Context):
-    await ctx.send(embed=cz_message(current_and_next()))
+    await ctx.send(cz_message(current_and_next()))
 
 @bot.command()
 async def toggle(ctx: commands.Context):
@@ -194,13 +185,9 @@ async def zone_watcher():
 
     if is_target_zone(cur.zone) and cur.seed != last_seed:
         last_seed = cur.seed
-        await channel.send(
-            embed=discord.Embed(
-                title="🟥 ACTIVE NOW",
-                color=0xFF0000,
-                description=f"`{cur.zone}`",
-            )
-        )
+        active_emoji = {"Chaos Sanctuary": "⚔️", "Cow Level": "🐮", "Stony Field and Tristram": "🪨", "Abaddon, the Pit of Acheron and the Infernal Pit": "🔥"}.get(cur.zone, "🗺️")
+        await channel.send(f"🟥 **ACTIVE NOW:** {active_emoji} {cur.zone}")
+        await channel.send(cz_message(current_and_next()))
 
     # Cow warning
     for i in range(300):
@@ -209,29 +196,17 @@ async def zone_watcher():
             warn_at = z.ts_ms - 600_000
             if warn_at <= now < warn_at + 30_000 and z.seed != last_cow_seed:
                 last_cow_seed = z.seed
-                await channel.send(
-                    embed=discord.Embed(
-                        title="🐮 Cow Level Warning",
-                        color=0xFFFF00,
-                        description="**Cow Level in 10 minutes**",
-                    )
-                )
+                await channel.send("`**🐮 Cow Level Warning:** Cow Level in 10 minutes`")
             break
 
     # Abaddon warning
     for i in range(300):
         z = get_zone(now, i)
-        if z.zone == "Abaddon, the Pit of Acheron, and the Infernal Pit":
+        if z.zone == "Abaddon, the Pit of Acheron and the Infernal Pit":
             warn_at = z.ts_ms - 600_000
             if warn_at <= now < warn_at + 30_000 and z.seed != last_abaddon_seed:
                 last_abaddon_seed = z.seed
-                await channel.send(
-                    embed=discord.Embed(
-                        title="🔥 Abaddon Warning",
-                        color=0xFF0000,
-                        description="**Abaddon, the Pit of Acheron, and the Infernal Pit in 10 minutes**",
-                    )
-                )
+                await channel.send("`**🔥 Abaddon Warning:** Abaddon, the Pit of Acheron and the Infernal Pit in 10 minutes`")
             break
 
 @zone_watcher.before_loop
